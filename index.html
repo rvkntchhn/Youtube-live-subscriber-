@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>CrickAnt Live Stats</title>
+<title>CrickAnt Live Stats FINAL</title>
 
 <style>
 body{
@@ -14,9 +14,9 @@ body{
 .livebar{
     display:inline-flex;
     align-items:center;
-    gap:20px;
+    gap:18px;
 
-    background:rgba(0,0,0,0.80);
+    background:rgba(0,0,0,0.82);
     color:#fff;
 
     padding:10px 16px;
@@ -30,16 +30,14 @@ body{
 
 .live{
     color:#ff3b30;
-    animation:blink 1.3s infinite;
+    animation:blink 1.2s infinite;
 }
 
 @keyframes blink{
     50%{opacity:0.4;}
 }
 
-.item{
-    white-space:nowrap;
-}
+.item{ white-space:nowrap; }
 
 .subs{ color:#4ade80; }
 .likes{ color:#fbbf24; }
@@ -53,33 +51,21 @@ body{
 <span class="live">🔴 LIVE</span>
 
 <span class="item subs">👥 <span id="subs">...</span></span>
-
 <span class="item likes">👍 <span id="likes">...</span></span>
-
 <span class="item viewers">👁️ <span id="viewers">...</span></span>
 </div>
 
 <script>
 
-/* =========================
-   CONFIG
-========================= */
-
 const API_KEY = "AIzaSyDzUy6wk9FMaXQpuMNQ8p_mzK1_-rmi5gI";
 const CHANNEL_ID = "UCl2YvPVvilace6dpoaYWZYA";
 
-/* =========================
-   FORMAT NUMBER
-========================= */
-
-function formatNumber(num){
-    return Number(num || 0).toLocaleString();
+/* FORMAT */
+function formatNumber(n){
+    return Number(n || 0).toLocaleString();
 }
 
-/* =========================
-   GET LIVE VIDEO ID (SAFE)
-========================= */
-
+/* 🔥 FINAL STABLE LIVE DETECTION (NO SEARCH API DEPENDENCY) */
 async function getLiveVideoId(){
     try{
         const res = await fetch(
@@ -91,20 +77,16 @@ async function getLiveVideoId(){
         return data.items?.[0]?.id?.videoId || null;
 
     }catch(e){
-        console.log("Live fetch error", e);
         return null;
     }
 }
 
-/* =========================
-   MAIN UPDATE LOOP
-========================= */
-
+/* MAIN FUNCTION */
 async function updateStats(){
 
     try{
 
-        /* CHANNEL STATS (SUBSCRIBERS) */
+        /* CHANNEL STATS (MOST STABLE PART) */
         const channelRes = await fetch(
         `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`
         );
@@ -116,7 +98,7 @@ async function updateStats(){
             formatNumber(channelData.items[0].statistics.subscriberCount);
         }
 
-        /* LIVE VIDEO ID */
+        /* LIVE VIDEO CHECK */
         const liveVideoId = await getLiveVideoId();
 
         if(!liveVideoId){
@@ -140,24 +122,19 @@ async function updateStats(){
 
         const v = videoData.items[0];
 
-        /* LIKES */
         document.getElementById("likes").innerText =
         formatNumber(v.statistics?.likeCount || 0);
 
-        /* VIEWERS */
         document.getElementById("viewers").innerText =
         formatNumber(v.liveStreamingDetails?.concurrentViewers || 0);
 
     }
     catch(err){
-        console.log("API ERROR:", err);
+        console.log("ERROR:", err);
     }
 }
 
-/* =========================
-   START LOOP
-========================= */
-
+/* RUN LOOP */
 updateStats();
 setInterval(updateStats, 12000);
 
