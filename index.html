@@ -1,9 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>YouTube Live Overlay</title>
+<meta charset="UTF-8">
+<title>CrickAnt Live Stats</title>
+
+<style>
+body{
+    margin:0;
+    background:transparent;
+    font-family:Arial,sans-serif;
+}
+
+.container{
+    display:flex;
+    gap:15px;
+}
+
+.box{
+    background:rgba(0,0,0,.75);
+    color:white;
+    padding:10px 20px;
+    border-radius:12px;
+    text-align:center;
+    min-width:180px;
+}
+
+.label{
+    font-size:14px;
+    color:#ccc;
+}
+
+.value{
+    font-size:28px;
+    font-weight:bold;
+}
+</style>
 </head>
+
 <body>
-<h1>Overlay Working</h1>
+
+<div class="container">
+
+<div class="box">
+<div class="label">Subscribers</div>
+<div class="value" id="subs">...</div>
+</div>
+
+<div class="box">
+<div class="label">Likes</div>
+<div class="value" id="likes">...</div>
+</div>
+
+<div class="box">
+<div class="label">Viewers</div>
+<div class="value" id="viewers">...</div>
+</div>
+
+</div>
+
+<script>
+
+const API_KEY = "AIzaSyCASHq2b4-TrgfrPodhlLsr1Hkk9QmZDQo
+  ";
+const CHANNEL_ID = "UCl2YvPVvilace6dpoaYWZYA";
+
+async function getLiveVideoId() {
+
+    const res = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
+    );
+
+    const data = await res.json();
+
+    if(data.items && data.items.length > 0){
+        return data.items[0].id.videoId;
+    }
+
+    return null;
+}
+
+async function updateStats(){
+
+    try{
+
+        const channelRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`
+        );
+
+        const channelData = await channelRes.json();
+
+        document.getElementById("subs").innerText =
+        Number(channelData.items[0].statistics.subscriberCount).toLocaleString();
+
+        const liveVideoId = await getLiveVideoId();
+
+        if(!liveVideoId){
+            document.getElementById("likes").innerText = "Offline";
+            document.getElementById("viewers").innerText = "Offline";
+            return;
+        }
+
+        const videoRes = await fetch(
+            `https://www.googleapis.com/youtube/v3/videos?part=statistics,liveStreamingDetails&id=${liveVideoId}&key=${API_KEY}`
+        );
+
+        const videoData = await videoRes.json();
+
+        document.getElementById("likes").innerText =
+        Number(videoData.items[0].statistics.likeCount || 0).toLocaleString();
+
+        document.getElementById("viewers").innerText =
+        Number(videoData.items[0].liveStreamingDetails.concurrentViewers || 0).toLocaleString();
+
+    }
+    catch(err){
+        console.log(err);
+    }
+}
+
+updateStats();
+setInterval(updateStats,15000);
+
+</script>
+
 </body>
 </html>
