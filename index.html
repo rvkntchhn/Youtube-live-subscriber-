@@ -1,127 +1,139 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>CrickAnt Live Stats</title>
+<!DOCTYPE html><html>  <head>  
+<meta charset="UTF-8">  
+<title>CrickAnt Live Stats</title><style>  
+body{  
+    margin:0;  
+    background:transparent;  
+    font-family:Arial,Helvetica,sans-serif;  
+}  .livebar{
+display:inline-flex;
+align-items:center;
+gap:20px;
 
-<style>
-body{
-    margin:0;
-    background:transparent;
-    font-family:Arial,sans-serif;
+background:rgba(0,0,0,.82);  
+
+color:#fff;  
+
+padding:10px 18px;  
+
+border-radius:14px;  
+
+font-size:22px;  
+
+font-weight:700;  
+
+backdrop-filter:blur(4px);  
+
+box-shadow:0 4px 12px rgba(0,0,0,.35);
+
 }
 
-.container{
-    display:flex;
-    gap:15px;
+.live{
+color:#ff3b30;
+animation:pulse 1.5s infinite;
 }
 
-.box{
-    background:rgba(0,0,0,.75);
-    color:white;
-    padding:10px 20px;
-    border-radius:12px;
-    text-align:center;
-    min-width:180px;
-}
-
-.label{
-    font-size:14px;
-    color:#ccc;
+.item{
+white-space:nowrap;
 }
 
 .value{
-    font-size:28px;
-    font-weight:bold;
+margin-left:4px;
 }
-</style>
-</head>
 
-<body>
+@keyframes pulse{
+0%{opacity:1;}
+50%{opacity:.45;}
+100%{opacity:1;}
+}
+</style></head><body><div class="livebar"><span class="live">🔴 LIVE</span>
 
-<div class="container">
-
-<div class="box">
-<div class="label">Subscribers</div>
-<div class="value" id="subs">...</div>
-</div>
-
-<div class="box">
-<div class="label">Likes</div>
-<div class="value" id="likes">...</div>
-</div>
-
-<div class="box">
-<div class="label">Viewers</div>
-<div class="value" id="viewers">...</div>
-</div>
-
-</div>
-
-<script>
-
-const API_KEY = "AIzaSyCASHq2b4-TrgfrPodhlLsr1Hkk9QmZDQo";
-
+<span class="item">  
+👥 <span class="value" id="subs">...</span> Subs  
+</span><span class="item">  
+👍 <span class="value" id="likes">...</span> Likes  
+</span><span class="item">  
+👁️ <span class="value" id="viewers">...</span> Watching  
+</span></div><script>  const API_KEY = "AIzaSyCASHq2b4-TrgfrPodhlLsr1Hkk9QmZDQo";
 const CHANNEL_ID = "UCl2YvPVvilace6dpoaYWZYA";
 
-async function getLiveVideoId() {
+function formatNumber(num){
 
-    const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
-    );
+num = Number(num);  
 
-    const data = await res.json();
+if(num >= 1000000){  
+    return (num/1000000).toFixed(1).replace(".0","")+"M";  
+}  
 
-    if(data.items && data.items.length > 0){
-        return data.items[0].id.videoId;
-    }
+if(num >= 1000){  
+    return (num/1000).toFixed(1).replace(".0","")+"K";  
+}  
 
-    return null;
+return num.toLocaleString();
+
+}
+
+async function getLiveVideoId(){
+
+const res = await fetch(  
+    `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`  
+);  
+
+const data = await res.json();  
+
+if(data.items && data.items.length > 0){  
+    return data.items[0].id.videoId;  
+}  
+
+return null;
+
 }
 
 async function updateStats(){
 
-    try{
+try{  
 
-        const channelRes = await fetch(
-            `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`
-        );
+    const channelRes = await fetch(  
+        `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`  
+    );  
 
-        const channelData = await channelRes.json();
+    const channelData = await channelRes.json();  
 
-        document.getElementById("subs").innerText =
-        Number(channelData.items[0].statistics.subscriberCount).toLocaleString();
+    document.getElementById("subs").innerText =  
+        formatNumber(channelData.items[0].statistics.subscriberCount);  
 
-        const liveVideoId = await getLiveVideoId();
+    const liveVideoId = await getLiveVideoId();  
 
-        if(!liveVideoId){
-            document.getElementById("likes").innerText = "Offline";
-            document.getElementById("viewers").innerText = "Offline";
-            return;
-        }
+    if(!liveVideoId){  
 
-        const videoRes = await fetch(
-            `https://www.googleapis.com/youtube/v3/videos?part=statistics,liveStreamingDetails&id=${liveVideoId}&key=${API_KEY}`
-        );
+        document.getElementById("likes").innerText = "OFFLINE";  
+        document.getElementById("viewers").innerText = "OFFLINE";  
 
-        const videoData = await videoRes.json();
+        return;  
+    }  
 
-        document.getElementById("likes").innerText =
-        Number(videoData.items[0].statistics.likeCount || 0).toLocaleString();
+    const videoRes = await fetch(  
+        `https://www.googleapis.com/youtube/v3/videos?part=statistics,liveStreamingDetails&id=${liveVideoId}&key=${API_KEY}`  
+    );  
 
-        document.getElementById("viewers").innerText =
-        Number(videoData.items[0].liveStreamingDetails.concurrentViewers || 0).toLocaleString();
+    const videoData = await videoRes.json();  
 
-    }
-    catch(err){
-        console.log(err);
-    }
+    document.getElementById("likes").innerText =  
+        formatNumber(videoData.items[0].statistics.likeCount || 0);  
+
+    document.getElementById("viewers").innerText =  
+        formatNumber(videoData.items[0].liveStreamingDetails.concurrentViewers || 0);  
+
+}  
+catch(err){  
+    console.log(err);  
+}
+
 }
 
 updateStats();
 setInterval(updateStats,15000);
 
-</script>
+</script></body>
 
-</body>
 </html>
