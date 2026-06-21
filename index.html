@@ -41,10 +41,6 @@ body{
     white-space:nowrap;
 }
 
-.value{
-    margin-left:6px;
-}
-
 .subs{ color:#4ade80; }
 .likes{ color:#fbbf24; }
 .viewers{ color:#60a5fa; }
@@ -56,70 +52,71 @@ body{
 <div class="livebar">
 <span class="live">🔴 LIVE</span>
 
-<span class="item subs">
-👥 <span id="subs">...</span>
-</span>
+<span class="item subs">👥 <span id="subs">...</span></span>
 
-<span class="item likes">
-👍 <span id="likes">...</span>
-</span>
+<span class="item likes">👍 <span id="likes">...</span></span>
 
-<span class="item viewers">
-👁️ <span id="viewers">...</span>
-</span>
+<span class="item viewers">👁️ <span id="viewers">...</span></span>
 </div>
 
 <script>
 
-const API_KEY = "AIzaSyCemhZq445bjWz5WcvAm2TW7SJH--ZcKeM";
+/* =========================
+   CONFIG
+========================= */
 
+const API_KEY = "AIzaSyCemhZq445bjWz5WcvAm2TW7SJH--ZcKeM";
 const CHANNEL_ID = "UCl2YvPVvilace6dpoaYWZYA";
 
-/* FORMAT */
+/* =========================
+   FORMAT NUMBER
+========================= */
+
 function formatNumber(num){
-    return Number(num).toLocaleString();
+    return Number(num || 0).toLocaleString();
 }
 
-/* 🔥 FIX 1: MORE RELIABLE LIVE DETECTION */
-async function getLiveVideoId(){
+/* =========================
+   GET LIVE VIDEO ID (SAFE)
+========================= */
 
+async function getLiveVideoId(){
     try{
-        // FIX: order=date improves live detection accuracy
         const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&order=date&key=${API_KEY}`
+        `https://www.googleapis.com/youtube/v3/search?part=id&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`
         );
 
         const data = await res.json();
 
-        if(data.items && data.items.length > 0){
-            return data.items[0].id.videoId;
-        }
-
-        return null;
+        return data.items?.[0]?.id?.videoId || null;
 
     }catch(e){
+        console.log("Live fetch error", e);
         return null;
     }
 }
 
-/* MAIN */
+/* =========================
+   MAIN UPDATE LOOP
+========================= */
+
 async function updateStats(){
 
     try{
 
-        /* CHANNEL STATS (SAFE ALWAYS) */
+        /* CHANNEL STATS (SUBSCRIBERS) */
         const channelRes = await fetch(
         `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`
         );
 
         const channelData = await channelRes.json();
 
-        if(channelData.items && channelData.items.length){
+        if(channelData.items?.length){
             document.getElementById("subs").innerText =
             formatNumber(channelData.items[0].statistics.subscriberCount);
         }
 
-        /* LIVE VIDEO */
+        /* LIVE VIDEO ID */
         const liveVideoId = await getLiveVideoId();
 
         if(!liveVideoId){
@@ -128,14 +125,14 @@ async function updateStats(){
             return;
         }
 
-        /* 🔥 FIX 2: SAFE VIDEO API HANDLING */
+        /* VIDEO STATS */
         const videoRes = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=statistics,liveStreamingDetails&id=${liveVideoId}&key=${API_KEY}`
         );
 
         const videoData = await videoRes.json();
 
-        if(!videoData.items || videoData.items.length === 0){
+        if(!videoData.items?.length){
             document.getElementById("likes").innerText = "0";
             document.getElementById("viewers").innerText = "0";
             return;
@@ -143,9 +140,11 @@ async function updateStats(){
 
         const v = videoData.items[0];
 
+        /* LIKES */
         document.getElementById("likes").innerText =
         formatNumber(v.statistics?.likeCount || 0);
 
+        /* VIEWERS */
         document.getElementById("viewers").innerText =
         formatNumber(v.liveStreamingDetails?.concurrentViewers || 0);
 
@@ -154,6 +153,10 @@ async function updateStats(){
         console.log("API ERROR:", err);
     }
 }
+
+/* =========================
+   START LOOP
+========================= */
 
 updateStats();
 setInterval(updateStats, 12000);
